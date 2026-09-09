@@ -1,20 +1,17 @@
 import numpy as np
 
-def cargar_y_procesar_texto(ruta_archivo):
+def cargaProcesarTexto(ruta_archivo):
     # Leemos el archivo 
     with open(ruta_archivo, "r", encoding="utf-8") as archivo:
         texto = archivo.read()
 
-    # 1. Pasamos a minúsculas
     texto = texto.lower()
-
-    # 2. Como ya tiene espacios alrededor de los signos, .split() separa palabras y signos automáticamente.
     tokens = texto.split()
 
     return tokens
 
 
-def armar_diccionario(tokens):
+def armarDiccionario(tokens):
     # Palabras únicas ordenadas
     palabras_unicas = sorted(list(set(tokens)))
     V = len(palabras_unicas)
@@ -32,7 +29,7 @@ def armar_diccionario(tokens):
 
 
 
-def generar_datos_cbow(tokens, palabra_a_indice, ventana=4):
+def generaContextos(tokens, palabra_a_indice, ventana=4):
     """ventana=4 significa: 4 a la izquierda y 4 a la derecha (C = 8 palabras)
 
     ventana=5 significa: 5 a la izquierda y 5 a la derecha (C = 10 palabras)
@@ -43,8 +40,8 @@ def generar_datos_cbow(tokens, palabra_a_indice, ventana=4):
     # Recorremos asegurando que haya suficiente margen a izquierda y derecha
     for i in range(ventana, total_tokens - ventana):
         # La palabra del medio es el objetivo
-        palabra_objetivo = tokens[i]
-        indice_objetivo = palabra_a_indice[palabra_objetivo]
+        palabra_objetivo = tokens[i]                                # la palabra en la posición i del texto
+        indice_objetivo = palabra_a_indice[palabra_objetivo]        # su índice fijo en el vocabulario
 
         # Las palabras de alrededor son el contexto
         palabras_izq = tokens[i - ventana : i]
@@ -53,17 +50,14 @@ def generar_datos_cbow(tokens, palabra_a_indice, ventana=4):
 
         # Convertimos las palabras del contexto a sus números (índices)
         c_indices = []
-        for p in contexto:
-            c_indices.append(palabra_a_indice[p])
+        for palabra in contexto:
+            c_indices.append(palabra_a_indice[palabra])     # cada palabra del contexto -> su índice   
 
-        ejemplos.append((c_indices, indice_objetivo))
-
-    return ejemplos
-
+        ejemplos.append((c_indices, indice_objetivo))   # (indices de las palabras del contexto, inidice de la palabra objetivo)
+    return ejemplos     # lista de tuplas (c_indices, indice_objetivo), una por cada palabra central posible
 
 
-
-def inicializar_pesos(V, N, seed=42):
+def inicializarPesos(V, N, seed=42):
     """
     |V|: , cantidad de palabras del vocabulario
     N: , dimension de la capa oculta
@@ -126,13 +120,14 @@ def retropropagacion(W, W_prima, c_indices, indice_objetivo, h, y, eta):
 
     return W, W_prima
 
-def calcular_perdida(y, indice_objetivo):
+
+def calcularPerdida(y, indice_objetivo):
     """Calcula la función de costo E = -log(y_j*)"""
     return -np.log(y[indice_objetivo])
 
 
 
-def similitud_coseno(v_A, v_B):
+def similitudCoseno(v_A, v_B):
     """Calcula la similitud del coseno entre dos representaciones vectoriales:
 
     cos = (v_A . v_B) / (||v_A|| * ||v_B||)
@@ -149,9 +144,7 @@ def similitud_coseno(v_A, v_B):
     return np.dot(v_A, v_B) / (norma_A * norma_B)
 
 
-def mostrar_palabras_similares(
-    W, palabra_buscada, palabra_a_indice, indice_a_palabra, cantidad=5
-):
+def mostrarPalabrasSimilares(W, palabra_buscada, palabra_a_indice, cantidad=5):
     # 1. Buscamos el vector de la palabra que queremos consultar
     indice_buscado = palabra_a_indice[palabra_buscada]
     vector_buscado = W[indice_buscado]
@@ -161,7 +154,7 @@ def mostrar_palabras_similares(
     for otra_palabra, otro_indice in palabra_a_indice.items():
         if otra_palabra != palabra_buscada:  # Para no compararla consigo misma
             vector_otro = W[otro_indice]
-            similitud = similitud_coseno(vector_buscado, vector_otro)
+            similitud = similitudCoseno(vector_buscado, vector_otro)
             # Guardamos primero la similitud para que Python ordene fácil
             puntajes.append((similitud, otra_palabra))
 
@@ -176,19 +169,19 @@ def mostrar_palabras_similares(
 
 
 
-def entrenar_experimento(tokens, ventana, epocas=15, N=50, eta=0.05):
+def entrenar(tokens, ventana, epocas=15, N=50, eta=0.05):
     # 1. Armamos el diccionario
-    palabra_a_indice, indice_a_palabra, V = armar_diccionario(tokens)
+    palabra_a_indice, indice_a_palabra, V = armarDiccionario(tokens)
 
     # 2. Generamos todos los ejemplos del texto
-    ejemplos = generar_datos_cbow(tokens, palabra_a_indice, ventana=ventana)
+    ejemplos = generaContextos(tokens, palabra_a_indice, ventana=ventana)
 
     print(f" ENTRENANDO CON VENTANA = {ventana} (Contexto de {ventana*2} palabras)")
     print(f" Tokenns: {len(tokens)} | Vocabulario |V|: {V} | Ejemplos: {len(ejemplos)}")
 
 
     # 3. Inicializamos las matrices W y W'
-    W, W_prima = inicializar_pesos(V, N)
+    W, W_prima = inicializarPesos(V, N)
 
     # 4. Bucle que recorre el texto por épocas
     for epoca in range(1, epocas + 1):
@@ -200,7 +193,7 @@ def entrenar_experimento(tokens, ventana, epocas=15, N=50, eta=0.05):
             h, y, u = propagacion(W, W_prima, c_indices)
 
             # b) Medimos el error
-            perdida = calcular_perdida(y, indice_objetivo)
+            perdida = calcularPerdida(y, indice_objetivo)
             perdida_total += perdida
 
             # c) Corregimos los pesos
@@ -214,3 +207,6 @@ def entrenar_experimento(tokens, ventana, epocas=15, N=50, eta=0.05):
     # Devolvemos la matriz W con los vectores aprendidos
     return W, palabra_a_indice, indice_a_palabra
 
+tokens = cargaProcesarTexto(r"C:\Users\Ale Crespo\Desktop\aprendizaje-automatico-avanzado\tp1\tp1-prueba-aav.txt")
+W, palabra_a_indice, indice_a_palabra = entrenar(tokens, ventana=3, epocas=15, N=50, eta=0.05)
+mostrarPalabrasSimilares(W, "consignar", palabra_a_indice, cantidad=5)
