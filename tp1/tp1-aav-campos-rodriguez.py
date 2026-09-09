@@ -165,7 +165,7 @@ def mostrar_palabras_similares(
             # Guardamos primero la similitud para que Python ordene fácil
             puntajes.append((similitud, otra_palabra))
 
-    # 3. Ordenamos de mayor a menor y cortamos las primeras
+    # 3. Ordenamos de mayor a menor y cortamos las primeras para mostrar solo las más similares
     puntajes.sort(reverse=True)
     mejores = puntajes[:cantidad]
 
@@ -214,3 +214,35 @@ def entrenar_experimento(tokens, ventana, epocas=15, N=50, eta=0.05):
     # Devolvemos la matriz W con los vectores aprendidos
     return W, palabra_a_indice, indice_a_palabra
 
+
+if __name__ == "__main__":
+    tokens = cargar_y_procesar_texto("tp1/texto_corto.txt")
+
+    # 2. Experimento con 4 palabras a cada lado (Ventana = 4)
+    W_ventana4, palabra_a_idx_4, idx_a_palabra_4 = entrenar_experimento(
+        tokens, ventana=4, epocas=15, N=50, eta=0.05
+    )
+
+    # 3. Experimento con 5 palabras a cada lado (Ventana = 5)
+    W_ventana5, palabra_a_idx_5, idx_a_palabra_5 = entrenar_experimento(
+        tokens, ventana=5, epocas=15, N=50, eta=0.05
+    )
+
+    # 4. Palabras del texto para examinar la similitud
+## CAMBIAR: En vez de escribir palabras a mano que quizás no existen,
+# le pedimos a Python que elija 5 palabras AL AZAR del vocabulario, con random y seed.
+
+    palabras_para_probar = ["caballo", "fábulas", "mundo"]
+
+
+    print("Resultado con ventana = 4")
+    for palabra in palabras_para_probar:
+        mostrar_palabras_similares(
+            W_ventana4, palabra, palabra_a_idx_4, idx_a_palabra_4, cantidad=3
+        )
+
+    print("Resultados con ventana= 5")
+    for palabra in palabras_para_probar:
+        mostrar_palabras_similares(
+            W_ventana5, palabra, palabra_a_idx_5, idx_a_palabra_5, cantidad=3
+        )
