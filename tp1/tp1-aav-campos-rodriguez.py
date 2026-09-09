@@ -144,7 +144,7 @@ def similitudCoseno(v_A, v_B):
     return np.dot(v_A, v_B) / (norma_A * norma_B)
 
 
-def mostrarPalabrasSimilares(W, palabra_buscada, palabra_a_indice, cantidad=5):
+def mostrarPalabrasSimilaresCoseno(W, palabra_buscada, palabra_a_indice, cantidad=5):
     # 1. Buscamos el vector de la palabra que queremos consultar
     indice_buscado = palabra_a_indice[palabra_buscada]
     vector_buscado = W[indice_buscado]
@@ -155,6 +155,30 @@ def mostrarPalabrasSimilares(W, palabra_buscada, palabra_a_indice, cantidad=5):
         if otra_palabra != palabra_buscada:  # Para no compararla consigo misma
             vector_otro = W[otro_indice]
             similitud = similitudCoseno(vector_buscado, vector_otro)
+            # Guardamos primero la similitud para que Python ordene fácil
+            puntajes.append((similitud, otra_palabra))
+
+    # 3. Ordenamos de mayor a menor y cortamos las primeras
+    puntajes.sort(reverse=True)
+    mejores = puntajes[:cantidad]
+
+    # 4. Mostramos los resultados
+    print(f"\nPalabras más parecidas a '{palabra_buscada}':")
+    for similitud, palabra in mejores:
+        print(f"  - {palabra}: {similitud:.4f}")
+
+
+def mostrarPalabrasSimilaresProdVectorial(W, palabra_buscada, palabra_a_indice, cantidad=5):
+    # 1. Buscamos el vector de la palabra que queremos consultar
+    indice_buscado = palabra_a_indice[palabra_buscada]
+    vector_buscado = W[indice_buscado]
+
+    # 2. Comparamos contra todas las demás palabras del vocabulario
+    puntajes = []
+    for otra_palabra, otro_indice in palabra_a_indice.items():
+        if otra_palabra != palabra_buscada:  # Para no compararla consigo misma
+            vector_otro = W[otro_indice]
+            similitud = vector_buscado @ vector_otro
             # Guardamos primero la similitud para que Python ordene fácil
             puntajes.append((similitud, otra_palabra))
 
@@ -208,5 +232,26 @@ def entrenar(tokens, ventana, epocas=15, N=50, eta=0.05):
     return W, palabra_a_indice, indice_a_palabra
 
 tokens = cargaProcesarTexto(r"C:\Users\Ale Crespo\Desktop\aprendizaje-automatico-avanzado\tp1\tp1-prueba-aav.txt")
-W, palabra_a_indice, indice_a_palabra = entrenar(tokens, ventana=3, epocas=15, N=50, eta=0.05)
-mostrarPalabrasSimilares(W, "consignar", palabra_a_indice, cantidad=5)
+
+import pickle
+import os
+
+W_70, palabra_a_indice_70, indice_a_palabra_70 = entrenar(tokens, ventana=3, epocas=70, N=50, eta=0.05)
+
+carpeta_script = os.path.dirname(os.path.abspath(__file__))
+
+ruta_pesos = os.path.join(carpeta_script, "pesos_cbow_70epocas.npz")
+np.savez(ruta_pesos, W=W_70)
+print(f"Guardado en: {ruta_pesos}")
+
+ruta_vocab = os.path.join(carpeta_script, "vocabulario_70epocas.pkl")
+with open(ruta_vocab, "wb") as f:
+    pickle.dump({"palabra_a_indice": palabra_a_indice_70, "indice_a_palabra": indice_a_palabra_70}, f)
+print(f"Guardado en: {ruta_vocab}")
+
+mostrarPalabrasSimilaresCoseno(W_70, "tiempo", palabra_a_indice_70, cantidad=10)
+mostrarPalabrasSimilaresProdVectorial(W_70, "tiempo", palabra_a_indice_70, cantidad=10)
+
+mostrarPalabrasSimilaresCoseno(W_70, "hombre", palabra_a_indice_70, cantidad=10)
+mostrarPalabrasSimilaresProdVectorial(W_70, "hombre", palabra_a_indice_70, cantidad=10)
+
