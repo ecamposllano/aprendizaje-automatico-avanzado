@@ -193,42 +193,37 @@ def mostrarPalabrasSimilaresProdVectorial(W, palabra_buscada, palabra_a_indice, 
 
 
 
-def entrenar(tokens, ventana, epocas=15, N=50, eta=0.05):
-    # 1. Armamos el diccionario
-    palabra_a_indice, indice_a_palabra, V = armarDiccionario(tokens)
+import time
 
-    # 2. Generamos todos los ejemplos del texto
+def entrenar(tokens, ventana, epocas=15, N=50, eta=0.05):
+    palabra_a_indice, indice_a_palabra, V = armarDiccionario(tokens)
     ejemplos = generaContextos(tokens, palabra_a_indice, ventana=ventana)
 
     print(f" ENTRENANDO CON VENTANA = {ventana} (Contexto de {ventana*2} palabras)")
-    print(f" Tokenns: {len(tokens)} | Vocabulario |V|: {V} | Ejemplos: {len(ejemplos)}")
+    print(f" Tokens: {len(tokens)} | Vocabulario |V|: {V} | Ejemplos: {len(ejemplos)}")
 
-
-    # 3. Inicializamos las matrices W y W'
     W, W_prima = inicializarPesos(V, N)
 
-    # 4. Bucle que recorre el texto por épocas
     for epoca in range(1, epocas + 1):
         perdida_total = 0.0
+        inicio_epoca = time.time()
 
-        for c_indices, indice_objetivo in ejemplos:
-            # entrenamiento de cada ejemplo 
-            # a) Hacia adelante
+        for i, (c_indices, indice_objetivo) in enumerate(ejemplos):
             h, y, u = propagacion(W, W_prima, c_indices)
-
-            # b) Medimos el error
             perdida = calcularPerdida(y, indice_objetivo)
             perdida_total += perdida
+            W, W_prima = retropropagacion(W, W_prima, c_indices, indice_objetivo, h, y, eta)
 
-            # c) Corregimos los pesos
-            W, W_prima = retropropagacion(
-                W, W_prima, c_indices, indice_objetivo, h, y, eta
-            )
+            if i > 0 and i % 2000 == 0:
+                transcurrido = time.time() - inicio_epoca
+                velocidad = i / transcurrido  # ejemplos por segundo
+                restante = (len(ejemplos) - i) / velocidad
+                print(f"  ...ejemplo {i}/{len(ejemplos)} | {velocidad:.0f} ej/seg | faltan ~{restante:.0f} seg de esta época")
 
         perdida_promedio = perdida_total / len(ejemplos)
-        print(f"Época {epoca:02d}/{epocas} - Pérdida: {perdida_promedio:.4f}")
+        duracion_epoca = time.time() - inicio_epoca
+        print(f"Época {epoca:02d}/{epocas} - Pérdida: {perdida_promedio:.4f} - Duración: {duracion_epoca:.1f} seg")
 
-    # Devolvemos la matriz W con los vectores aprendidos
     return W, palabra_a_indice, indice_a_palabra
 
 
@@ -271,21 +266,21 @@ tokens = cargaProcesarTexto(r"C:\Users\Ale Crespo\Desktop\aprendizaje-automatico
 import pickle
 import os
 
-W_70, palabra_a_indice_70, indice_a_palabra_70 = entrenar(tokens, ventana=3, epocas=70, N=50, eta=0.05)
+W_15, palabra_a_indice_15, indice_a_palabra_15 = entrenar(tokens, ventana=3, epocas=15, N=50, eta=0.05)
 
 carpeta_script = os.path.dirname(os.path.abspath(__file__))
 
-ruta_pesos = os.path.join(carpeta_script, "pesos_cbow_70epocas.npz")
-np.savez(ruta_pesos, W=W_70)
+ruta_pesos = os.path.join(carpeta_script, "pesos_cbow_15epocas.npz")
+np.savez(ruta_pesos, W=W_15)
 print(f"Guardado en: {ruta_pesos}")
 
-ruta_vocab = os.path.join(carpeta_script, "vocabulario_70epocas.pkl")
+ruta_vocab = os.path.join(carpeta_script, "vocabulario_15epocas.pkl")
 with open(ruta_vocab, "wb") as f:
-    pickle.dump({"palabra_a_indice": palabra_a_indice_70, "indice_a_palabra": indice_a_palabra_70}, f)
+    pickle.dump({"palabra_a_indice": palabra_a_indice_15, "indice_a_palabra": indice_a_palabra_15}, f)
 print(f"Guardado en: {ruta_vocab}")
 
-mostrarPalabrasSimilaresCoseno(W_70, "tiempo", palabra_a_indice_70, cantidad=10)
-mostrarPalabrasSimilaresProdVectorial(W_70, "tiempo", palabra_a_indice_70, cantidad=10)
+mostrarPalabrasSimilaresCoseno(W_15, "tiempo", palabra_a_indice_15, cantidad=10)
+mostrarPalabrasSimilaresProdVectorial(W_15, "tiempo", palabra_a_indice_15, cantidad=10)
 
-mostrarPalabrasSimilaresCoseno(W_70, "hombre", palabra_a_indice_70, cantidad=10)
-mostrarPalabrasSimilaresProdVectorial(W_70, "hombre", palabra_a_indice_70, cantidad=10)
+mostrarPalabrasSimilaresCoseno(W_15, "hombre", palabra_a_indice_15, cantidad=10)
+mostrarPalabrasSimilaresProdVectorial(W_15, "hombre", palabra_a_indice_15, cantidad=10)
