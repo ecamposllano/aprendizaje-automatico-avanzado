@@ -103,21 +103,19 @@ def retropropagacion_batch(W, W_prima, batch_c_indices, batch_objetivos, h, y, e
     e = y.copy()
     e[cp.arange(B), batch_objetivos] -= 1.0
 
-    # 2. Gradiente de W': dW' = h^T @ e (shape: N, V)
+    # 2. Gradiente de W': dW' = h^T @ e / B (shape: N, V)
     dW_prima = h.T @ e / B
 
-    # 3. Error propagado hacia la capa oculta: EH = e @ W'^T (shape: B, N)
-    EH = e @ W_prima.T
+    # 3. Error propagado hacia la capa oculta dividido por B (shape: B, N)
+    EH = (e @ W_prima.T) / B
 
-    # 4. Actualización de W'
-    W_prima -= eta * dW_prima
-
-    # 5. Actualización de W usando acumulación atómica para manejar índices repetidos en el batch
-    # Sumamos los gradientes correspondientes a cada palabra de contexto indexada
+    # 4. Actualización de W usando acumulación atómica con W_prima SIN modificar
     for i in range(C):
         indices_columna = batch_c_indices[:, i]
-        # cupy.scatter_add actualiza de forma segura las filas repetidas en el batch
         cupyx.scatter_add(W, indices_columna, -(eta / C) * EH)
+
+    # 5. Actualización posterior de W' para no alterar el cálculo de EH
+    W_prima -= eta * dW_prima
 
     return W, W_prima
 
