@@ -1,0 +1,269 @@
+import cupy as cp
+import cupyx
+import matplotlib.pyplot as plt
+import pickle
+import numpy as np
+import os
+
+
+def cargaProcesarTexto(ruta_archivo):
+    # Leemos el archivo
+    with open(ruta_archivo, "r", encoding="utf-8") as archivo:
+        texto = archivo.read()
+
+    texto = texto.lower()
+    tokens = texto.split()
+
+    return tokens
+
+def armarDiccionario(tokens):
+    # Palabras únicas ordenadas
+    palabras_unicas = sorted(list(set(tokens)))
+    V = len(palabras_unicas)
+
+    palabra_a_indice = {}
+    indice_a_palabra = {}
+
+    numero = 0
+    for palabra in palabras_unicas:
+        palabra_a_indice[palabra] = numero
+        indice_a_palabra[numero] = palabra
+        numero = numero + 1
+
+    return palabra_a_indice, indice_a_palabra, V
+
+def generaContextos(tokens, palabra_a_indice, ventana=4):
+    """ventana=4 significa: 4 a la izquierda y 4 a la derecha (C = 8 palabras)
+
+    ventana=5 significa: 5 a la izquierda y 5 a la derecha (C = 10 palabras)
+    """
+    ejemplos = []
+    total_tokens = len(tokens)
+
+    # Recorremos asegurando que haya suficiente margen a izquierda y derecha
+    for i in range(ventana, total_tokens - ventana):
+        # La palabra del medio es el objetivo
+        palabra_objetivo = tokens[i]                                # la palabra en la posición i del texto
+        indice_objetivo = palabra_a_indice[palabra_objetivo]        # su índice fijo en el vocabulario
+
+        # Las palabras de alrededor son el contexto
+        palabras_izq = tokens[i - ventana : i]
+        palabras_der = tokens[i + 1 : i + ventana + 1]
+        contexto = palabras_izq + palabras_der
+
+        # Convertimos las palabras del contexto a sus números (índices)
+        c_indices = []
+        for palabra in contexto:
+            c_indices.append(palabra_a_indice[palabra])     # cada palabra del contexto -> su índice
+
+        ejemplos.append((c_indices, indice_objetivo))   # (indices de las palabras del contexto, inidice de la palabra objetivo)
+    return ejemplos     # lista de tuplas (c_indices, indice_objetivo), una por cada palabra central posible
+
+def inicializarPesos(V, N, seed=42):
+    """
+    |V|: , cantidad de palabras del vocabulario
+    N: , dimension de la capa oculta
+    """
+    cp.random.seed(seed)
+    W = 0.1 * cp.random.randn(V, N)
+    W_prima = 0.1 * cp.random.randn(N, V)
+
+    return W, W_prima
+
+def softmax(u):
+    exp_u = cp.exp(u - cp.max(u))
+    return exp_u / cp.sum(exp_u)
+
+def propagacion_batch(W, W_prima, batch_c_indices):
+    """
+    batch_c_indices: Array o lista de shape (B, C) con los índices de contexto del lote.
+    """
+    B, C = batch_c_indices.shape
+    N = W.shape[1]
+
+    # Sumamos los embeddings de contexto para todo el batch de golpe: shape (B, N)
+    # W[batch_c_indices] extrae los vectores y sumamos a lo largo del eje del contexto (axis=1)
+    h = cp.sum(W[batch_c_indices], axis=1) / C  # (B, N)
+
+    # Producto matricial para todo el batch: (B, N) @ (N, V) = (B, V)
+    u = h @ W_prima
+
+    # Softmax por filas para el batch: shape (B, V)
+    exp_u = cp.exp(u - cp.max(u, axis=1, keepdims=True))
+    y = exp_u / cp.sum(exp_u, axis=1, keepdims=True)
+
+    return h, y, u
+
+
+def retropropagacion_batch(W, W_prima, batch_c_indices, batch_objetivos, h, y, eta):
+    B, C = batch_c_indices.shape
+    V = W_prima.shape[1]
+
+    # 1. Error de salida: e = y - t (shape: B, V)
+    e = y.copy()
+    e[cp.arange(B), batch_objetivos] -= 1.0
+
+    # 2. Gradiente de W': dW' = h^T @ e (shape: N, V)
+    dW_prima = h.T @ e / B
+
+    # 3. Error propagado hacia la capa oculta: EH = e @ W'^T (shape: B, N)
+    EH = e @ W_prima.T
+
+    # 4. Actualización de W'
+    W_prima -= eta * dW_prima
+
+    # 5. Actualización de W usando acumulación atómica para manejar índices repetidos en el batch
+    # Sumamos los gradientes correspondientes a cada palabra de contexto indexada
+    for i in range(C):
+        indices_columna = batch_c_indices[:, i]
+        # cupy.scatter_add actualiza de forma segura las filas repetidas en el batch
+        cupyx.scatter_add(W, indices_columna, -(eta / C) * EH)
+
+    return W, W_prima
+
+
+def calcularPerdida_batch(y, batch_objetivos):
+    """
+    y: shape (B, V)
+    batch_objetivos: shape (B,) con los índices de la palabra objetivo de cada ejemplo
+    """
+    B = y.shape[0]
+    # Extraemos la probabilidad asignada a la palabra objetivo correcta para cada ejemplo del batch
+    prob_correctas = y[cp.arange(B), batch_objetivos]
+    # Evitamos log(0) sumando una constante muy pequeña epsilon
+    perdida = -cp.log(prob_correctas + 1e-15)
+    return cp.sum(perdida) / B
+
+
+def similitudCoseno(v_A, v_B):
+    """Calcula la similitud del coseno entre dos representaciones vectoriales:
+
+    cos = (v_A . v_B) / (||v_A|| * ||v_B||)
+
+    v_A, v_B: vectores de tamaño (N,) (filas de la matriz W)
+    Retorna un valor entre -1 y 1
+    """
+    norma_A = cp.linalg.norm(v_A)
+    norma_B = cp.linalg.norm(v_B)
+
+    if norma_A == 0 or norma_B == 0:
+        return 0.0
+
+    return cp.dot(v_A, v_B) / (norma_A * norma_B)
+
+
+def mostrarPalabrasSimilaresCoseno(W, palabra_buscada, palabra_a_indice, cantidad=5):
+    # 1. Buscamos el vector de la palabra que queremos consultar
+    indice_buscado = palabra_a_indice[palabra_buscada]
+    vector_buscado = W[indice_buscado]
+
+    # 2. Comparamos contra todas las demás palabras del vocabulario
+    puntajes = []
+    for otra_palabra, otro_indice in palabra_a_indice.items():
+        if otra_palabra != palabra_buscada:  # Para no compararla consigo misma
+            vector_otro = W[otro_indice]
+            similitud = similitudCoseno(vector_buscado, vector_otro)
+            # Guardamos primero la similitud para que Python ordene fácil
+            puntajes.append((similitud, otra_palabra))
+
+    # 3. Ordenamos de mayor a menor y cortamos las primeras para mostrar solo las más similares
+    puntajes.sort(reverse=True)
+    mejores = puntajes[:cantidad]
+
+    # 4. Mostramos los resultados
+    print(f"\nPalabras más parecidas a '{palabra_buscada}':")
+    for similitud, palabra in mejores:
+        print(f"  - {palabra}: {similitud:.4f}")
+
+
+def mostrarPalabrasSimilaresProdVectorial(W, palabra_buscada, palabra_a_indice, cantidad=5):
+    # 1. Buscamos el vector de la palabra que queremos consultar
+    indice_buscado = palabra_a_indice[palabra_buscada]
+    vector_buscado = W[indice_buscado]
+
+    # 2. Comparamos contra todas las demás palabras del vocabulario
+    puntajes = []
+    for otra_palabra, otro_indice in palabra_a_indice.items():
+        if otra_palabra != palabra_buscada:  # Para no compararla consigo misma
+            vector_otro = W[otro_indice]
+            similitud = vector_buscado @ vector_otro
+            # Guardamos primero la similitud para que Python ordene fácil
+            puntajes.append((similitud, otra_palabra))
+
+    # 3. Ordenamos de mayor a menor y cortamos las primeras
+    puntajes.sort(reverse=True)
+    mejores = puntajes[:cantidad]
+
+    # 4. Mostramos los resultados
+    print(f"\nPalabras más parecidas a '{palabra_buscada}':")
+    for similitud, palabra in mejores:
+        print(f"  - {palabra}: {similitud:.4f}")
+
+
+import time
+
+def entrenar_por_batches(tokens, ventana, epocas, N, eta, batch_size=64):
+    palabra_a_indice, indice_a_palabra, V = armarDiccionario(tokens)
+    ejemplos = generaContextos(tokens, palabra_a_indice, ventana=ventana)
+
+    print(f"ENTRENANDO POR LOTES (Batch Size = {batch_size}) | Ventana = {ventana}")
+    print(f"Tokens: {len(tokens)} | Vocabulario |V|: {V} | Ejemplos totales: {len(ejemplos)}")
+
+    W, W_prima = inicializarPesos(V, N)
+
+    # Convertimos los ejemplos a matrices de CuPy para eficiencia
+    c_indices_todos = cp.array([item[0] for item in ejemplos], dtype=cp.int32)
+    objetivos_todos = cp.array([item[1] for item in ejemplos], dtype=cp.int32)
+
+    num_ejemplos = len(ejemplos)
+
+    for epoca in range(1, epocas + 1):
+        inicio_epoca = time.time()
+        perdida_total = 0.0
+
+        # Mezclamos los índices en cada época
+        indices_mezclados = cp.random.permutation(num_ejemplos)
+
+        for i in range(0, num_ejemplos, batch_size):
+            batch_idxs = indices_mezclados[i:i + batch_size]
+
+            batch_c = c_indices_todos[batch_idxs]
+            batch_obj = objetivos_todos[batch_idxs]
+
+            h, y, u = propagacion_batch(W, W_prima, batch_c)
+            perdida = calcularPerdida_batch(y, batch_obj)
+            perdida_total += perdida * len(batch_idxs)
+
+            W, W_prima = retropropagacion_batch(W, W_prima, batch_c, batch_obj, h, y, eta)
+
+        perdida_promedio = float(perdida_total / num_ejemplos)
+        duracion_epoca = time.time() - inicio_epoca
+        print(f"Época {epoca:02d}/{epocas} - Pérdida: {perdida_promedio:.4f} - Duración: {duracion_epoca:.1f} seg")
+
+    return cp.asnumpy(W), palabra_a_indice, indice_a_palabra
+
+
+
+carpeta_script = os.path.dirname(os.path.abspath(__file__))
+
+ruta_texto = os.path.join(carpeta_script, "tp1-aav.txt")
+tokens = cargaProcesarTexto(ruta_texto)
+
+W_final, palabra_a_indice, indice_a_palabra = entrenar_por_batches(
+    tokens=tokens,
+    ventana=5,
+    epocas=100,
+    N=50,
+    eta=0.05,
+    batch_size=128
+)
+
+
+ruta_pesos = os.path.join(carpeta_script, "pesos_cbow_5.npz")
+np.savez(ruta_pesos, W=W_final)
+print(f"Guardado en: {ruta_pesos}")
+
+ruta_vocab = os.path.join(carpeta_script, "vocabulario.pkl")
+with open(ruta_vocab, "wb") as f:
+    pickle.dump({"palabra_a_indice": palabra_a_indice, "indice_a_palabra": indice_a_palabra}, f)
+print(f"Guardado en: {ruta_vocab}")

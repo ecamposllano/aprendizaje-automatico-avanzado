@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 def cargaProcesarTexto(ruta_archivo):
     # Leemos el archivo 
@@ -62,9 +63,10 @@ def inicializarPesos(V, N, seed=42):
     |V|: , cantidad de palabras del vocabulario
     N: , dimension de la capa oculta
     """
-    generador_num_aleatorios = np.random.default_rng(seed)
-    W = generador_num_aleatorios.normal(0, 0.1, size=(V, N))
-    W_prima = generador_num_aleatorios.normal(0, 0.1, size=(N, V))
+    np.random.seed(seed)
+    W = 0.1 * np.random.randn(V, N)
+    W_prima = 0.1 * np.random.randn(N, V)
+
     return W, W_prima
 
 
@@ -100,9 +102,9 @@ def retropropagacion(W, W_prima, c_indices, indice_objetivo, h, y, eta):
 
     C = len(c_indices)
 
-    # Error de salida: e = y - t  (t es one-hot de la palabra objetivo)
+    # Error de salida: e = y - t
     e = y.copy()
-    e[indice_objetivo] = e[indice_objetivo] - 1.0  # (V,)
+    e[indice_objetivo] = e[indice_objetivo] - 1.0  # le resto 1 solo a la posición correcta
 
     # Gradiente de W': dW' = h @ e^T  -> (N, V)
     dW_prima = np.outer(h, e)
@@ -113,8 +115,7 @@ def retropropagacion(W, W_prima, c_indices, indice_objetivo, h, y, eta):
     # Actualizo W' completa
     W_prima = W_prima - (eta * dW_prima)
 
-    # Actualizo W solo en las filas de las palabras de contexto
-    # (porque x_k es one-hot, el gradiente solo "toca" esas filas)
+    # Actualizo W solo en las filas de las palabras de contexto (el gradiente solo "toca" esas filas)
     for idx in c_indices:
         W[idx] = W[idx] - (eta * (EH / C))
 
@@ -195,7 +196,7 @@ def mostrarPalabrasSimilaresProdVectorial(W, palabra_buscada, palabra_a_indice, 
 
 import time
 
-def entrenar(tokens, ventana, epocas=15, N=50, eta=0.05):
+def entrenar(tokens, ventana, epocas, N, eta):
     palabra_a_indice, indice_a_palabra, V = armarDiccionario(tokens)
     ejemplos = generaContextos(tokens, palabra_a_indice, ventana=ventana)
 
@@ -261,26 +262,88 @@ for palabra in palabras_para_probar:
 '''
 
 
+r"""def contarFrecuencias(tokens):
+
+    frecuencias_aboslutas = {}
+
+    for token in tokens:
+        if token not in frecuencias_aboslutas:
+            frecuencias_aboslutas[token] = 1
+        else:
+            frecuencias_aboslutas[token] = frecuencias_aboslutas[token] + 1
+
+    total = len(tokens)
+
+    frecuencias_relativas = {}
+
+    for palabra in frecuencias_aboslutas:
+        frecuencias_relativas[palabra] = frecuencias_aboslutas[palabra] / total
+
+    return frecuencias_relativas, frecuencias_aboslutas
+
+def topNpalabras(frecuencias_relativas, n):
+    palabras_ordenadas = sorted(frecuencias_relativas.items(), key=lambda elemento: elemento[1], reverse=True)
+    return palabras_ordenadas[:n]
+
+def graficarHistogramaPalabrasFrecuentas(palabras_ordenadas):
+    palabras = [palabra[0] for palabra in palabras_ordenadas]
+    frecuencias = [palabra[1] for palabra in palabras_ordenadas]
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(palabras, frecuencias)
+    plt.xticks(rotation=45, ha="right")
+    plt.ylabel("Frecuencia relativa")
+    plt.title(f"Top {len(palabras)} palabras más frecuentes")
+    plt.tight_layout()
+    plt.show()
+
 tokens = cargaProcesarTexto(r"C:\Users\Ale Crespo\Desktop\aprendizaje-automatico-avanzado\tp1\tp1-prueba-aav.txt")
+frecuencias_relativas, frecuencias_aboslutas = contarFrecuencias(tokens)
+top_20_palabras = topNpalabras(frecuencias_relativas, n=20)
+top_20_palabras_abs = topNpalabras(frecuencias_aboslutas, n=20)
+graficarHistogramaPalabrasFrecuentas(top_20_palabras)
+graficarHistogramaPalabrasFrecuentas(top_20_palabras_abs)
+"""
+tokens = cargaProcesarTexto(r"C:\Users\Ale Crespo\Desktop\aprendizaje-automatico-avanzado\tp1\tp1-aav.txt")
 
 import pickle
 import os
 
-W_15, palabra_a_indice_15, indice_a_palabra_15 = entrenar(tokens, ventana=3, epocas=15, N=50, eta=0.05)
+W_100, palabra_a_indice_100, indice_a_palabra_100 = entrenar(tokens, ventana=3, epocas=100, N=50, eta=0.05)
+
+carpeta_script = os.path.dirname(os.path.abspath(__file__))
+
+ruta_pesos = os.path.join(carpeta_script, "pesos_cbow_100epocas.npz")
+np.savez(ruta_pesos, W=W_100)
+print(f"Guardado en: {ruta_pesos}")
+
+ruta_vocab = os.path.join(carpeta_script, "vocabulario_100epocas.pkl")
+with open(ruta_vocab, "wb") as f:
+    pickle.dump({"palabra_a_indice": palabra_a_indice_100, "indice_a_palabra": indice_a_palabra_100}, f)
+print(f"Guardado en: {ruta_vocab}")
+
+mostrarPalabrasSimilaresCoseno(W_100, "tiempo", palabra_a_indice_100, cantidad=20)
+mostrarPalabrasSimilaresProdVectorial(W_100, "tiempo", palabra_a_indice_100, cantidad=20)
+
+mostrarPalabrasSimilaresCoseno(W_100, "hombre", palabra_a_indice_100, cantidad=20)
+mostrarPalabrasSimilaresProdVectorial(W_100, "hombre", palabra_a_indice_100, cantidad=20)
+
+
+"""W_15_copia, palabra_a_indice_15_copia, indice_a_palabra_15_copia = entrenar(tokens, ventana=3, epocas=15, N=50, eta=0.05)
 
 carpeta_script = os.path.dirname(os.path.abspath(__file__))
 
 ruta_pesos = os.path.join(carpeta_script, "pesos_cbow_15epocas.npz")
-np.savez(ruta_pesos, W=W_15)
+np.savez(ruta_pesos, W=W_15_copia)
 print(f"Guardado en: {ruta_pesos}")
 
 ruta_vocab = os.path.join(carpeta_script, "vocabulario_15epocas.pkl")
 with open(ruta_vocab, "wb") as f:
-    pickle.dump({"palabra_a_indice": palabra_a_indice_15, "indice_a_palabra": indice_a_palabra_15}, f)
+    pickle.dump({"palabra_a_indice": palabra_a_indice_15_copia, "indice_a_palabra": indice_a_palabra_15_copia}, f)
 print(f"Guardado en: {ruta_vocab}")
 
-mostrarPalabrasSimilaresCoseno(W_15, "tiempo", palabra_a_indice_15, cantidad=10)
-mostrarPalabrasSimilaresProdVectorial(W_15, "tiempo", palabra_a_indice_15, cantidad=10)
+mostrarPalabrasSimilaresCoseno(W_15_copia, "tiempo", palabra_a_indice_15_copia, cantidad=10)
+mostrarPalabrasSimilaresProdVectorial(W_15_copia, "tiempo", palabra_a_indice_15_copia, cantidad=10)
 
-mostrarPalabrasSimilaresCoseno(W_15, "hombre", palabra_a_indice_15, cantidad=10)
-mostrarPalabrasSimilaresProdVectorial(W_15, "hombre", palabra_a_indice_15, cantidad=10)
+mostrarPalabrasSimilaresCoseno(W_15_copia, "hombre", palabra_a_indice_15_copia, cantidad=10)
+mostrarPalabrasSimilaresProdVectorial(W_15_copia, "hombre", palabra_a_indice_15_copia, cantidad=10)"""
