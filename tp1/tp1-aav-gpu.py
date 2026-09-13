@@ -5,7 +5,6 @@ import pickle
 import numpy as np
 import os
 
-
 def cargaProcesarTexto(ruta_archivo):
     # Leemos el archivo
     with open(ruta_archivo, "r", encoding="utf-8") as archivo:
@@ -265,3 +264,42 @@ ruta_vocab = os.path.join(carpeta_script, "vocabulario.pkl")
 with open(ruta_vocab, "wb") as f:
     pickle.dump({"palabra_a_indice": palabra_a_indice, "indice_a_palabra": indice_a_palabra}, f)
 print(f"Guardado en: {ruta_vocab}")
+
+
+#Para entrenar con BPE, el corpus completo, vocabulario de 5000
+'''
+from bpe import cargarTexto, entrenarBPE, fragmentarTexto, guardarBPE, cargarBPE
+
+ruta_texto = os.path.join(carpeta_script, "tp1-aav.txt")
+ruta_bpe   = os.path.join(carpeta_script, "bpe_merges.pkl")
+
+# Si ya existe el archivo guardado, lo cargamos; si no, lo entrenamos una sola vez
+if os.path.exists(ruta_bpe):
+    merges, tokens = cargarBPE(ruta_bpe)
+    print("BPE cargado exitosamente desde el archivo .pkl")
+else:
+    print("No hay BPE guardado: entrenando (solo esta vez)...")
+    texto = cargarTexto(ruta_texto)
+    merges, _ = entrenarBPE(texto, tamano_vocabulario=5000)
+    tokens = fragmentarTexto(texto, merges)
+    guardarBPE(ruta_bpe, merges, tokens)
+
+# A partir de acá todo igual que antes
+W_final, palabra_a_indice, indice_a_palabra = entrenar_por_batches(
+    tokens=tokens,
+    ventana=5,
+    epocas=300,
+    N=100,
+    eta=0.1,
+    batch_size=128
+)
+
+ruta_pesos = os.path.join(carpeta_script, "pesos_cbow_5.npz")
+np.savez(ruta_pesos, W=W_final)
+print(f"Guardado en: {ruta_pesos}")
+
+ruta_vocab = os.path.join(carpeta_script, "vocabulario.pkl")
+with open(ruta_vocab, "wb") as f:
+    pickle.dump({"palabra_a_indice": palabra_a_indice, "indice_a_palabra": indice_a_palabra}, f)
+print(f"Guardado en: {ruta_vocab}")
+'''

@@ -1,0 +1,198 @@
+Resultado con 
+merges, _ = entrenarBPE(texto, tamano_vocabulario=5000)
+
+W_final, palabra_a_indice, indice_a_palabra = entrenar_por_batches(
+    tokens=tokens,
+    ventana=5,
+    epocas=100,
+    N=50,
+    eta=0.05,
+    batch_size=128)
+
+Signos iniciales: 88
+  merge 100: ('a', 'ci') (freq 6298) | |V| = 188
+  merge 200: ('á', 'n') (freq 2440) | |V| = 288
+  merge 300: ('c', 're') (freq 1452) | |V| = 388
+  merge 400: ('cu', 'r') (freq 1050) | |V| = 488
+  merge 500: ('al', 'go</w>') (freq 801) | |V| = 588
+  merge 600: ('nu', 'estr') (freq 641) | |V| = 688
+  merge 700: ('ca', 'p') (freq 525) | |V| = 788
+  merge 800: ('g', 'al') (freq 446) | |V| = 888
+  merge 900: ('pro', 'pi') (freq 380) | |V| = 988
+  merge 1000: ('ej', 'a</w>') (freq 329) | |V| = 1088
+  merge 1100: ('embar', 'go</w>') (freq 300) | |V| = 1188
+  merge 1200: ('c', 'el') (freq 264) | |V| = 1288
+  merge 1300: ('d', 'í</w>') (freq 236) | |V| = 1388
+  merge 1400: ('m', 'ag') (freq 216) | |V| = 1488
+  merge 1500: ('ide', 'a</w>') (freq 196) | |V| = 1588
+  merge 1600: ('con', 'vers') (freq 181) | |V| = 1688
+  merge 1700: ('nue', 'va</w>') (freq 168) | |V| = 1788
+  merge 1800: ('lo', 'j') (freq 158) | |V| = 1888
+  merge 1900: ('e', 'los</w>') (freq 146) | |V| = 1988
+  merge 2000: ('par', 'tes</w>') (freq 139) | |V| = 2088
+  merge 2100: ('pú', 'bli') (freq 130) | |V| = 2188
+  merge 2200: ('tor', 'no</w>') (freq 122) | |V| = 2288
+  merge 2300: ('pro', 'yec') (freq 115) | |V| = 2388
+  merge 2400: ('dar', 'le</w>') (freq 109) | |V| = 2488
+  merge 2500: ('t', 'ores</w>') (freq 104) | |V| = 2588
+  merge 2600: ('ho', 'tel</w>') (freq 99) | |V| = 2688
+  merge 2700: ('re', 'don') (freq 94) | |V| = 2788
+  merge 2800: ('mu', 'cha</w>') (freq 88) | |V| = 2888
+  merge 2900: ('h', 'en') (freq 84) | |V| = 2988
+  merge 3000: ('fu', 'ese</w>') (freq 81) | |V| = 3088
+  merge 3100: ('tra', 'ía</w>') (freq 78) | |V| = 3188
+  merge 3200: ('f', 'at') (freq 75) | |V| = 3288
+  merge 3300: ('col', 'or') (freq 72) | |V| = 3388
+  merge 3400: ('ju', 'sto</w>') (freq 69) | |V| = 3488
+  merge 3500: ('e', 'ando</w>') (freq 67) | |V| = 3588
+  merge 3600: ('z', 'o') (freq 65) | |V| = 3688
+  merge 3700: ('present', 'ó</w>') (freq 62) | |V| = 3788
+  merge 3800: ('pre', 'cio</w>') (freq 60) | |V| = 3888
+  merge 3900: ('salu', 'd</w>') (freq 58) | |V| = 3988
+  merge 4000: ('ag', 'ach') (freq 56) | |V| = 4088
+  merge 4100: ('hormi', 'ga</w>') (freq 54) | |V| = 4188
+  merge 4200: ('mé', 'xi') (freq 52) | |V| = 4288
+  merge 4300: ('escuch', 'aba</w>') (freq 51) | |V| = 4388
+  merge 4400: ('en', 'er') (freq 50) | |V| = 4488
+  merge 4500: ('ri', 'es') (freq 48) | |V| = 4588
+  merge 4600: ('cubi', 'erta</w>') (freq 47) | |V| = 4688
+  merge 4700: ('espe', 'jos</w>') (freq 45) | |V| = 4788
+  merge 4800: ('ri', 'eron</w>') (freq 44) | |V| = 4888
+  merge 4900: ('en', 'ig') (freq 43) | |V| = 4988
+Merges realizados: 4912 | Vocabulario final: 5000
+ENTRENANDO POR LOTES (Batch Size = 128) | Ventana = 5
+Tokens: 1384764 | Vocabulario |V|: 4960 | Ejemplos totales: 1384754
+Época 01/100 - Pérdida: 8.2196 - Duración: 25.8 seg
+Época 02/100 - Pérdida: 7.3510 - Duración: 22.2 seg
+Época 03/100 - Pérdida: 7.1244 - Duración: 22.5 seg
+Época 04/100 - Pérdida: 7.0146 - Duración: 22.1 seg
+Época 05/100 - Pérdida: 6.9488 - Duración: 23.2 seg
+Época 06/100 - Pérdida: 6.9045 - Duración: 22.2 seg
+Época 07/100 - Pérdida: 6.8713 - Duración: 22.5 seg
+Época 08/100 - Pérdida: 6.8446 - Duración: 22.2 seg
+Época 09/100 - Pérdida: 6.8219 - Duración: 21.6 seg
+Época 10/100 - Pérdida: 6.8021 - Duración: 22.8 seg
+Época 11/100 - Pérdida: 6.7840 - Duración: 22.3 seg
+Época 12/100 - Pérdida: 6.7675 - Duración: 22.1 seg
+Época 13/100 - Pérdida: 6.7519 - Duración: 22.2 seg
+Época 14/100 - Pérdida: 6.7371 - Duración: 21.6 seg
+Época 15/100 - Pérdida: 6.7230 - Duración: 22.4 seg
+Época 16/100 - Pérdida: 6.7093 - Duración: 22.4 seg
+Época 17/100 - Pérdida: 6.6961 - Duración: 22.4 seg
+Época 18/100 - Pérdida: 6.6834 - Duración: 21.8 seg
+Época 19/100 - Pérdida: 6.6709 - Duración: 22.0 seg
+Época 20/100 - Pérdida: 6.6588 - Duración: 22.3 seg
+Época 21/100 - Pérdida: 6.6470 - Duración: 22.2 seg
+Época 22/100 - Pérdida: 6.6356 - Duración: 22.7 seg
+Época 23/100 - Pérdida: 6.6244 - Duración: 21.6 seg
+Época 24/100 - Pérdida: 6.6135 - Duración: 22.5 seg
+Época 25/100 - Pérdida: 6.6028 - Duración: 22.5 seg
+Época 26/100 - Pérdida: 6.5924 - Duración: 23.1 seg
+Época 27/100 - Pérdida: 6.5822 - Duración: 22.8 seg
+Época 28/100 - Pérdida: 6.5722 - Duración: 21.7 seg
+Época 29/100 - Pérdida: 6.5624 - Duración: 22.8 seg
+Época 30/100 - Pérdida: 6.5528 - Duración: 22.4 seg
+Época 31/100 - Pérdida: 6.5434 - Duración: 22.3 seg
+Época 32/100 - Pérdida: 6.5342 - Duración: 22.4 seg
+Época 33/100 - Pérdida: 6.5252 - Duración: 21.4 seg
+Época 34/100 - Pérdida: 6.5165 - Duración: 22.3 seg
+Época 35/100 - Pérdida: 6.5079 - Duración: 22.1 seg
+Época 36/100 - Pérdida: 6.4995 - Duración: 22.2 seg
+Época 37/100 - Pérdida: 6.4912 - Duración: 21.8 seg
+Época 38/100 - Pérdida: 6.4832 - Duración: 22.4 seg
+Época 39/100 - Pérdida: 6.4753 - Duración: 22.2 seg
+Época 40/100 - Pérdida: 6.4677 - Duración: 22.3 seg
+Época 41/100 - Pérdida: 6.4601 - Duración: 22.2 seg
+Época 42/100 - Pérdida: 6.4528 - Duración: 21.4 seg
+Época 43/100 - Pérdida: 6.4455 - Duración: 22.4 seg
+Época 44/100 - Pérdida: 6.4385 - Duración: 22.4 seg
+Época 45/100 - Pérdida: 6.4315 - Duración: 22.2 seg
+Época 46/100 - Pérdida: 6.4248 - Duración: 21.6 seg
+Época 47/100 - Pérdida: 6.4181 - Duración: 22.8 seg
+Época 48/100 - Pérdida: 6.4116 - Duración: 22.4 seg
+Época 49/100 - Pérdida: 6.4052 - Duración: 22.4 seg
+Época 50/100 - Pérdida: 6.3989 - Duración: 22.7 seg
+Época 51/100 - Pérdida: 6.3928 - Duración: 22.5 seg
+Época 52/100 - Pérdida: 6.3867 - Duración: 23.0 seg
+Época 53/100 - Pérdida: 6.3808 - Duración: 23.4 seg
+Época 54/100 - Pérdida: 6.3750 - Duración: 23.7 seg
+Época 55/100 - Pérdida: 6.3693 - Duración: 23.7 seg
+Época 56/100 - Pérdida: 6.3637 - Duración: 23.8 seg
+Época 57/100 - Pérdida: 6.3583 - Duración: 23.0 seg
+Época 58/100 - Pérdida: 6.3529 - Duración: 22.6 seg
+Época 59/100 - Pérdida: 6.3476 - Duración: 22.2 seg
+Época 60/100 - Pérdida: 6.3424 - Duración: 22.2 seg
+Época 61/100 - Pérdida: 6.3373 - Duración: 22.5 seg
+Época 62/100 - Pérdida: 6.3323 - Duración: 22.2 seg
+Época 63/100 - Pérdida: 6.3274 - Duración: 21.5 seg
+Época 64/100 - Pérdida: 6.3226 - Duración: 22.2 seg
+Época 65/100 - Pérdida: 6.3179 - Duración: 22.0 seg
+Época 66/100 - Pérdida: 6.3132 - Duración: 22.4 seg
+Época 67/100 - Pérdida: 6.3086 - Duración: 21.8 seg
+Época 68/100 - Pérdida: 6.3041 - Duración: 22.0 seg
+Época 69/100 - Pérdida: 6.2997 - Duración: 22.1 seg
+Época 70/100 - Pérdida: 6.2954 - Duración: 22.1 seg
+Época 71/100 - Pérdida: 6.2911 - Duración: 22.0 seg
+Época 72/100 - Pérdida: 6.2869 - Duración: 21.6 seg
+Época 73/100 - Pérdida: 6.2828 - Duración: 22.1 seg
+Época 74/100 - Pérdida: 6.2787 - Duración: 22.0 seg
+Época 75/100 - Pérdida: 6.2747 - Duración: 22.3 seg
+Época 76/100 - Pérdida: 6.2708 - Duración: 21.2 seg
+Época 77/100 - Pérdida: 6.2669 - Duración: 22.1 seg
+Época 78/100 - Pérdida: 6.2631 - Duración: 22.4 seg
+Época 79/100 - Pérdida: 6.2593 - Duración: 22.3 seg
+Época 80/100 - Pérdida: 6.2556 - Duración: 22.1 seg
+Época 81/100 - Pérdida: 6.2519 - Duración: 22.0 seg
+Época 82/100 - Pérdida: 6.2483 - Duración: 22.1 seg
+Época 83/100 - Pérdida: 6.2447 - Duración: 22.3 seg
+Época 84/100 - Pérdida: 6.2412 - Duración: 22.5 seg
+Época 85/100 - Pérdida: 6.2377 - Duración: 21.4 seg
+Época 86/100 - Pérdida: 6.2343 - Duración: 22.1 seg
+Época 87/100 - Pérdida: 6.2309 - Duración: 22.7 seg
+Época 88/100 - Pérdida: 6.2275 - Duración: 22.8 seg
+Época 89/100 - Pérdida: 6.2242 - Duración: 22.1 seg
+Época 90/100 - Pérdida: 6.2209 - Duración: 21.7 seg
+Época 91/100 - Pérdida: 6.2177 - Duración: 22.2 seg
+Época 92/100 - Pérdida: 6.2145 - Duración: 22.2 seg
+Época 93/100 - Pérdida: 6.2113 - Duración: 22.1 seg
+Época 94/100 - Pérdida: 6.2082 - Duración: 22.4 seg
+Época 95/100 - Pérdida: 6.2051 - Duración: 22.5 seg
+Época 96/100 - Pérdida: 6.2020 - Duración: 22.5 seg
+Época 97/100 - Pérdida: 6.1989 - Duración: 22.2 seg
+Época 98/100 - Pérdida: 6.1959 - Duración: 21.9 seg
+Época 99/100 - Pérdida: 6.1929 - Duración: 21.6 seg
+Época 100/100 - Pérdida: 6.1900 - Duración: 22.7 seg
+Guardado en: /content/pesos_cbow_5.npz
+Guardado en: /content/vocabulario.pkl
+
+Índice de 'tiempo': 4390
+Palabra del índice 0: !</w>
+
+Pesos:Forma de la matriz W: (4960, 50)
+Vector de 'tiempo</w>': [ 0.12970451  0.11386142  0.01578635 -0.40168145 -0.8149299   0.50634417
+  0.08010095 -0.21781391 -0.1298134   0.81945282  0.36637758  0.75215311
+  0.50803538 -0.38172564 -0.07313094  0.59178799  0.33384068 -0.76412569
+ -0.06190493 -0.99819294  0.34589948  0.04565762 -0.67536447 -0.81773253
+ -0.18390862  0.28926944 -0.44583361 -0.36777169  0.39807596 -0.40338862
+ -0.21571163  0.18042912  0.37521526 -0.12189972  0.36779101 -0.40932612
+  0.0588206   0.20915745 -0.01623291  0.1526359   0.00755184 -0.00644052
+  0.97007857 -0.7845775  -0.45540802  0.49303942 -0.50016143  0.24173544
+ -0.67763686 -0.01301084]
+
+Con similitud de coseno:
+
+Palabras más parecidas a 'tiempo</w>':
+  - ser</w>: 0.7642
+  - mundo</w>: 0.7541
+  - muerto</w>: 0.7535
+  - ya</w>: 0.7473
+  - nada</w>: 0.7454
+
+Con producto interno:
+
+Palabras más parecidas a 'tiempo</w>':
+  - no</w>: 15.1399
+  - que</w>: 15.0173
+  - lo</w>: 11.7743
+  - si</w>: 11.0377
+  - me</w>: 10.6929
